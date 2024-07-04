@@ -36,7 +36,6 @@ router.post('/sendmail', async (req, res) => {
             },
         });
 
-        console.log(mailOptions);
 
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
