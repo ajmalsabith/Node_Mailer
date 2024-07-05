@@ -4,7 +4,7 @@ const dotenv = require('dotenv').config();
 const nodemailer = require('nodemailer');
 
 router.post('/sendmail', async (req, res) => {
-    const { sub, mail, cc, attach, text } = req.body;
+    const { sub, mail, cc, attach, html } = req.body;
     const attachArray = [];
     if (req.body) {
         attach.forEach(element => {
@@ -22,7 +22,7 @@ router.post('/sendmail', async (req, res) => {
             to: Array.isArray(mail) ? mail.join(', ') : mail,
             cc: Array.isArray(cc) ? cc.join(', ') : cc,
             subject: sub,
-            text: text,
+            html: html,
             attachments: attachArray,
         };
 
