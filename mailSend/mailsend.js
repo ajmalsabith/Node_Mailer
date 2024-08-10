@@ -3,8 +3,96 @@ const router = Router();
 const dotenv = require('dotenv').config();
 const nodemailer = require('nodemailer');
 const puppeteer = require('puppeteer');
+const { google } = require('googleapis');
+
+
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
+const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
+
+const oAuth2Client = new google.auth.OAuth2(
+  CLIENT_ID,
+  CLIENT_SECRET,
+  REDIRECT_URI
+);
+
+oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 
 router.post('/sendmail', async (req, res) => {
+    const { sub, mail, cc, attach, html } = req.body;
+    const attachArray = [];
+    if (req.body) {
+        attach.forEach(element => {
+            const base64String = element.filestring.split(',')[1];
+            const obj = {
+                filename: element.filename,
+                content: base64String,
+                encoding: 'base64',
+            };
+            attachArray.push(obj);
+        });
+
+        try {
+            const accessToken = await oAuth2Client.getAccessToken();
+
+            let transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    type: 'OAuth2',
+                    user: process.env.USER_EMAIL,
+                    clientId: CLIENT_ID,
+                    clientSecret: CLIENT_SECRET,
+                    refreshToken: REFRESH_TOKEN,
+                    accessToken: accessToken.token,
+                },
+            });
+
+            const mailOptions = {
+                from: process.env.USER_EMAIL,
+                to: Array.isArray(mail) ? mail.join(', ') : mail,
+                cc: Array.isArray(cc) ? cc.join(', ') : cc,
+                subject: sub,
+                html: html,
+                attachments: attachArray,
+            };
+
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    if (error.responseCode === 550 || error.response.includes("No such user")) {
+                        console.log('Email address does not exist');
+                        res.status(400).send({
+                            message: "Email address does not exist."
+                        });
+                    } else {
+                        console.log(error);
+                        res.status(400).send({
+                            message: "Email sending failed."
+                        });
+                    }
+                } else {
+                    console.log(`Email sent: ${info.response}`);
+                    res.status(200).send({
+                        message: "Email sent successfully."
+                    });
+                }
+            });
+
+        } catch (error) {
+            console.log('Error generating access token', error);
+            res.status(500).send({
+                message: "Failed to send email."
+            });
+        }
+    }
+});
+
+
+
+
+
+
+router.post('/sendmailold', async (req, res) => {
     const { sub, mail, cc, attach, html } = req.body;
     const attachArray = [];
     if (req.body) {
