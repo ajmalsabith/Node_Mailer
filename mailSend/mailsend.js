@@ -4,7 +4,6 @@ const dotenv = require('dotenv').config();
 const nodemailer = require('nodemailer');
 const puppeteer = require('puppeteer');
 const { google } = require('googleapis');
-const axios = require('axios');
 
 
 
@@ -114,7 +113,7 @@ oAuth2ClientOPSCRM.setCredentials({ refresh_token: REFRESH_OPSCRM_TOKEN });
 
 
 
-router.post('/sendmail-opscrm', async (req, res) => {
+router.post('/sendmailopscrm', async (req, res) => {
     const { sub, mail, cc, attach, html } = req.body;
     const attachArray = [];
     if (req.body) {
