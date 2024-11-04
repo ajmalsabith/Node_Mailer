@@ -112,9 +112,8 @@ const oAuth2ClientOPSCRM = new google.auth.OAuth2(
 oAuth2ClientOPSCRM.setCredentials({ refresh_token: REFRESH_OPSCRM_TOKEN });
 
 
-
 router.post('/sendmailopscrm', async (req, res) => {
-    const { sub, mail, cc, attach, html } = req.body;
+    const { sub, mail, cc, bcc, attach, html } = req.body; // Add bcc here
     const attachArray = [];
     if (req.body) {
         attach.forEach(element => {
@@ -146,6 +145,7 @@ router.post('/sendmailopscrm', async (req, res) => {
                 from: process.env.OPMSCRM_EMAIL,
                 to: Array.isArray(mail) ? mail.join(', ') : mail,
                 cc: Array.isArray(cc) ? cc.join(', ') : cc,
+                bcc: Array.isArray(bcc) ? bcc.join(', ') : bcc, // Add bcc field here
                 subject: sub,
                 html: html,
                 attachments: attachArray,
@@ -182,6 +182,7 @@ router.post('/sendmailopscrm', async (req, res) => {
         }
     }
 });
+
 
 
 
