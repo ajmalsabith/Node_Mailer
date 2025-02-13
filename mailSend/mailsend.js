@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const puppeteer = require('puppeteer');
 const { google } = require('googleapis');
 
+const CryptoJS = require("crypto-js");
 
 
 
@@ -94,6 +95,107 @@ router.post('/sendmail', async (req, res) => {
     }
 });
 
+
+
+router.post('/sendmailOtp', async (req, res) => {
+    const { sub, mail, cc, attach, html,username } = req.body;
+    const otp= generateOTP()
+    const encyotp= encryptOTP(otp)
+    const email=mail[0]
+   const  OtpDes = `Dear ${username},<br><br>
+    A login request has been made from your username ${email}.<br>
+    As an added level of security, you are required to complete the logon process by entering the below 6-digit OTP:<br><br>
+    ${otp}<br><br>
+    Thanks,<br>
+    OPSManager`;
+
+    const attachArray = [];
+    if (req.body) {
+        attach.forEach(element => {
+            const base64String = element.filestring.split(',')[1];
+            const obj = {
+                filename: element.filename,
+                content: base64String,
+                encoding: 'base64',
+            };
+            attachArray.push(obj);
+        });
+
+        try {
+            const accessToken = await oAuth2Client.getAccessToken();
+
+            let transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    type: 'OAuth2',
+                    user: process.env.USER_EMAIL,
+                    clientId: CLIENT_ID,
+                    clientSecret: CLIENT_SECRET,
+                    refreshToken: REFRESH_TOKEN,
+                    accessToken: accessToken.token,
+                },
+            });
+
+            const mailOptions = {
+                from: process.env.USER_EMAIL,
+                to: Array.isArray(mail) ? mail.join(', ') : mail,
+                cc: Array.isArray(cc) ? cc.join(', ') : cc,
+                subject: sub,
+                html:OtpDes,
+                attachments: attachArray,
+            };
+
+            // console.log(mailOptions,'mailoption...');
+            
+
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    if (error.responseCode === 550 || error.response.includes("No such user")) {
+                        console.log('Email address does not exist');
+                        res.status(400).send({
+                            message: "Email address does not exist."
+                        });
+                    } else {
+                        console.log(error);
+                        res.status(400).send({
+                            message: "Email sending failed."
+                        });
+                    }
+                } else {
+                    console.log(`Email sent: ${info.response}`);
+                    res.status(200).send({
+                        message: "Email sent successfully.",
+                        otp:encyotp
+
+
+                    });
+                }
+            });
+
+        } catch (error) {
+            console.log('Error generating access token', error);
+            res.status(500).send({
+                message: "Failed to send email."
+            });
+        }
+    }
+});
+
+
+const SECRET_KEY = "OTP_ENCRYPT_OPSM"; // Use a strong secret key
+
+function encryptOTP(otp) {
+    return CryptoJS.AES.encrypt(otp.toString(), SECRET_KEY).toString();
+}
+
+function generateOTP() {
+    const digits = '0123456789';
+    let OTP = '';
+    for (let i = 0; i < 6; i++) {
+        OTP += digits[Math.floor(Math.random() * 10)];
+    }
+    return OTP;
+  }
 
 
 
