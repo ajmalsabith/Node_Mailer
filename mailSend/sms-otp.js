@@ -28,7 +28,7 @@ router.post('/otp-sms',async (req,res)=>{
 
     try {
         await client.messages.create({
-            body: `Your OPSManager Login OTP is: ${otp}`,
+            body: `Your OPSmanager login OTP is: ${otp}`,
             from: process.env.TWILIO_PHONE_NUMBER,
             to: phone
         });
