@@ -20,6 +20,16 @@ router.post('/otp-sms',async (req,res)=>{
 
     const  phone  = req.body.data;
     console.log(req.body);
+    let SenderID = null;
+    if (phone.startsWith('+61')) {
+        SenderID = process.env.TWILIO_ALPHA_SENDER_ID
+    } else if (phone.startsWith('+91')) {
+        SenderID = process.env.TWILIO_PHONE_NUMBER
+    } else {
+        SenderID = process.env.TWILIO_PHONE_NUMBER
+    }
+    
+    console.log(SenderID);
     
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate 6-digit OTP
@@ -29,7 +39,7 @@ router.post('/otp-sms',async (req,res)=>{
     try {
         await client.messages.create({
             body: `Your OPSmanager login OTP is: ${otp}`,
-            from: process.env.TWILIO_PHONE_NUMBER,
+            from: SenderID,
             to: phone
         });
         console.log('successs',phone,otp);
