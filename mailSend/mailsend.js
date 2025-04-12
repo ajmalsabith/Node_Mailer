@@ -27,7 +27,90 @@ const oAuth2Client = new google.auth.OAuth2(
 
 oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 
+
+
+// blob url send mail
+
 router.post('/sendmail', async (req, res) => {
+    const { sub, mail, cc, attach, html } = req.body;
+    const attachArray = [];
+
+    if (req.body) {
+        attach.forEach(element => {
+            // Only handle Blob URL attachments
+            if (element.fileUrl) {
+                attachArray.push({
+                    filename: element.filename ,
+                    path: element.fileUrl,
+                });
+            }else{
+                const base64String = element.filestring.split(',')[1];
+                const obj = {
+                    filename: element.filename,
+                    content: base64String,
+                    encoding: 'base64',
+                };
+                attachArray.push(obj);
+
+            }
+        });
+
+    
+        try {
+            const accessToken = await oAuth2Client.getAccessToken();
+
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    type: 'OAuth2',
+                    user: process.env.USER_EMAIL,
+                    clientId: CLIENT_ID,
+                    clientSecret: CLIENT_SECRET,
+                    refreshToken: REFRESH_TOKEN,
+                    accessToken: accessToken.token,
+                },
+            });
+
+            const mailOptions = {
+                from: process.env.USER_EMAIL,
+                to: Array.isArray(mail) ? mail.join(', ') : mail,
+                cc: Array.isArray(cc) ? cc.join(', ') : cc,
+                subject: sub,
+                html: html,
+                attachments: attachArray,
+            };
+
+            console.log(mailOptions);
+            
+
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error('Send mail error:', error);
+                    if (error.responseCode === 550 || (error.response && error.response.includes("No such user"))) {
+                        res.status(400).send({ message: "Email address does not exist." });
+                    } else {
+                        res.status(400).send({ message: "Email sending failed." });
+                    }
+                }
+                 else {
+                    console.log(`Email sent: ${info.response}`);
+                    res.status(200).send({ message: "Email sent successfully." });
+                }
+            });
+
+        } catch (error) {
+            console.log('Error generating access token', error);
+            res.status(500).send({ message: "Failed to send email." });
+        }
+    }
+});
+
+
+
+
+// base64 string send mail
+
+router.post('/sendmail-base64', async (req, res) => {
     const { sub, mail, cc, attach, html } = req.body;
     const attachArray = [];
     if (req.body) {
